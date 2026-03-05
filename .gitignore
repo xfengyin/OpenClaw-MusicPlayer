@@ -1,0 +1,17 @@
+# Go
+*.exe
+*.test
+bin/
+
+# Node
+node_modules/
+.DS_Store
+
+# Data
+data/
+downloads/
+
+# IDE
+.vscode/
+.idea/
+*.swp
