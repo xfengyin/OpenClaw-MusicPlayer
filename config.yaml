@@ -1,0 +1,38 @@
+# OpenClaw Music Player Configuration
+# 开发环境配置
+
+server:
+  port: 8080
+  mode: development
+ host: 0.0.0.0
+
+data_dir: ./data
+cache_dir: ./cache
+
+# 音乐源配置
+sources:
+  netease:
+    enabled: true
+    base_url: https://music.163.com
+    api_url: https://interface3.music.163.com
+
+# 下载配置
+download:
+  max_concurrent: 5
+  buffer_size: 32768
+  timeout: 300
+  save_path: ./downloads
+
+# 日志配置
+logging:
+  level: info
+  format: json
+  output: stdout
+
+# 远程控制配置
+remote:
+  port: 9090
+  auth_required: true
+  ip_whitelist:
+    - 127.0.0.1
+    - localhost
