@@ -1,0 +1,147 @@
+name: Multi-Platform Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Build Go Server
+        run: |
+          cd server
+          go build -o ../dist/server.exe ./cmd/server
+        
+      - name: Build Frontend
+        run: |
+          cd web
+          npm install
+          npm run build
+          
+      - name: Package Windows App
+        run: |
+          mkdir -p dist/windows
+          cp -r web/dist/* dist/windows/
+          cp server/server.exe dist/windows/
+          echo "Windows app packaged"
+          
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openclaw-music-player-windows
+          path: dist/windows/
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Build Go Server
+        run: |
+          cd server
+          go build -o ../dist/server ./cmd/server
+        
+      - name: Build Frontend
+        run: |
+          cd web
+          npm install
+          npm run build
+          
+      - name: Package macOS App
+        run: |
+          mkdir -p dist/macos
+          cp -r web/dist/* dist/macos/
+          cp server/server dist/macos/
+          echo "macOS app packaged"
+          
+      - name: Upload macOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openclaw-music-player-macos
+          path: dist/macos/
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Build Go Server
+        run: |
+          cd server
+          go build -o ../dist/server ./cmd/server
+        
+      - name: Build Frontend
+        run: |
+          cd web
+          npm install
+          npm run build
+          
+      - name: Package Linux App
+        run: |
+          mkdir -p dist/linux
+          cp -r web/dist/* dist/linux/
+          cp server/server dist/linux/
+          echo "Linux app packaged"
+          
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openclaw-music-player-linux
+          path: dist/linux/
+
+  create-release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/openclaw-music-player-windows/**
+            artifacts/openclaw-music-player-macos/**
+            artifacts/openclaw-music-player-linux/**
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
