@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
 const { spawn } = require('child_process')
+const fs = require('fs')
 
 let mainWindow
 let serverProcess
@@ -15,7 +16,8 @@ function createWindow () {
       preload: path.join(__dirname, 'preload.js')
     },
     title: 'OpenClaw Music Player',
-    icon: path.join(__dirname, '../build/icon.png')
+    icon: path.join(__dirname, '../build/icon.png'),
+    show: false // 先不显示窗口，等加载完成后再显示
   })
 
   // 加载前端页面
@@ -23,12 +25,54 @@ function createWindow () {
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
     mainWindow.webContents.openDevTools()
+    mainWindow.show()
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+    // 生产环境：查找 index.html
+    const indexPath = findIndexHtml()
+    console.log('Loading index.html from:', indexPath)
+    
+    if (indexPath && fs.existsSync(indexPath)) {
+      mainWindow.loadFile(indexPath)
+    } else {
+      console.error('index.html not found!')
+      // 显示错误页面
+      mainWindow.loadURL(`data:text/html,<h1>Error: index.html not found</h1><p>Path: ${indexPath}</p>`)
+    }
+    
+    // 等页面加载完成后再显示窗口
+    mainWindow.once('ready-to-show', () => {
+      mainWindow.show()
+    })
   }
   
   // 启动 Go 后端服务
   startServer()
+}
+
+// 查找 index.html 文件
+function findIndexHtml() {
+  const possiblePaths = [
+    path.join(__dirname, '../renderer/index.html'),
+    path.join(__dirname, '../../renderer/index.html'),
+    path.join(process.resourcesPath, 'renderer/index.html'),
+    path.join(app.getAppPath(), 'renderer/index.html'),
+    path.join(__dirname, 'renderer/index.html'),
+    // 兼容旧路径
+    path.join(__dirname, '../dist/index.html'),
+    path.join(__dirname, '../../dist/index.html'),
+    path.join(process.resourcesPath, 'dist/index.html')
+  ]
+  
+  console.log('Searching for index.html in:')
+  for (const p of possiblePaths) {
+    console.log('  -', p, fs.existsSync(p) ? '(exists)' : '(not found)')
+    if (fs.existsSync(p)) {
+      return p
+    }
+  }
+  
+  // 如果没找到，返回第一个路径（让错误信息显示正确的路径）
+  return possiblePaths[0]
 }
 
 function startServer() {
