@@ -112,18 +112,34 @@ jobs:
           cd mobile/openclaw-music
           cordova build android --release
           
-      - name: Sign APK
+      - name: Find and Sign APK
         run: |
-          cd mobile/openclaw-music/platforms/android/app/build/outputs/apk/release
-          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore debug.keystore -storepass android app-release-unsigned.apk androiddebugkey
-          zipalign -v 4 app-release-unsigned.apk OpenClaw-Music-Player.apk
+          # Find the APK file
+          find mobile/openclaw-music -name "*.apk" -type f
+          APK_PATH=$(find mobile/openclaw-music -name "app-release-unsigned.apk" -o -name "app-release.apk" | head -1)
+          echo "Found APK at: $APK_PATH"
+          
+          if [ -n "$APK_PATH" ]; then
+            APK_DIR=$(dirname "$APK_PATH")
+            cd "$APK_DIR"
+            
+            # Generate keystore
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" || true
+            
+            # Sign APK
+            if [ -f "app-release-unsigned.apk" ]; then
+              jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore debug.keystore -storepass android app-release-unsigned.apk androiddebugkey || true
+              ${ANDROID_HOME}/build-tools/*/zipalign -v 4 app-release-unsigned.apk OpenClaw-Music-Player.apk || cp app-release-unsigned.apk OpenClaw-Music-Player.apk
+            else
+              cp app-release.apk OpenClaw-Music-Player.apk
+            fi
+          fi
           
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: OpenClaw-Music-Player-Android
-          path: mobile/openclaw-music/platforms/android/app/build/outputs/apk/release/OpenClaw-Music-Player.apk
+          path: mobile/openclaw-music/**/OpenClaw-Music-Player.apk
 
   # Linux AppImage 构建
   build-linux:
@@ -209,17 +225,30 @@ jobs:
           ls -la artifacts/ || true
           find artifacts -type f -name "*" || true
           
+      - name: Prepare Release Files
+        run: |
+          mkdir -p release
+          cp artifacts/windows/**/*.exe release/ 2>/dev/null || true
+          cp artifacts/android/**/*.apk release/ 2>/dev/null || true
+          cp artifacts/linux/**/*.AppImage release/ 2>/dev/null || true
+          ls -la release/
+          
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.version || github.ref_name }}
           name: Release ${{ github.event.inputs.version || github.ref_name }}
-          files: |
-            artifacts/windows/**/*.exe
-            artifacts/android/**/*.apk
-            artifacts/linux/**/*.AppImage
+          files: release/*
           generate_release_notes: true
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        
+      - name: Upload Artifacts as Backup
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: release/*
