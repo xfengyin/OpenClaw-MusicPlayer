@@ -9,6 +9,11 @@ import (
 	"github.com/xfengyin/OpenClaw-MusicPlayer/backend/internal/utils"
 )
 
+var (
+	// 用于routes.go中的time.Now()
+	timeNow = time.Now
+)
+
 // Server HTTP服务器
 type Server struct {
 	router *gin.Engine
@@ -35,40 +40,7 @@ func NewServer(logger *utils.Logger) *Server {
 	return s
 }
 
-// setupRoutes 设置路由
-func (s *Server) setupRoutes() {
-	// 健康检查
-	s.router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "ok",
-			"time":   time.Now().Unix(),
-		})
-	})
 
-	// API路由组
-	api := s.router.Group("/api/v1")
-	{
-		// 音乐相关
-		music := api.Group("/music")
-		{
-			music.GET("/search", s.handleSearch)
-			music.GET("/detail/:id", s.handleDetail)
-			music.GET("/url/:id", s.handleGetURL)
-		}
-
-		// 歌单相关
-		playlist := api.Group("/playlist")
-		{
-			playlist.GET("/parse", s.handleParsePlaylist)
-		}
-
-		// 歌词相关
-		lyrics := api.Group("/lyrics")
-		{
-			lyrics.GET("/:id", s.handleGetLyrics)
-		}
-	}
-}
 
 // Start 启动服务器
 func (s *Server) Start(addr string) error {
@@ -124,35 +96,4 @@ func requestLogger(logger *utils.Logger) gin.HandlerFunc {
 	}
 }
 
-// 处理器方法（占位符）
-func (s *Server) handleSearch(c *gin.Context) {
-	keyword := c.Query("keyword")
-	if keyword == "" {
-		c.JSON(400, gin.H{"error": "keyword is required"})
-		return
-	}
-	c.JSON(200, gin.H{
-		"keyword": keyword,
-		"results": []interface{}{},
-	})
-}
 
-func (s *Server) handleDetail(c *gin.Context) {
-	id := c.Param("id")
-	c.JSON(200, gin.H{"id": id})
-}
-
-func (s *Server) handleGetURL(c *gin.Context) {
-	id := c.Param("id")
-	c.JSON(200, gin.H{"id": id, "url": ""})
-}
-
-func (s *Server) handleParsePlaylist(c *gin.Context) {
-	url := c.Query("url")
-	c.JSON(200, gin.H{"url": url})
-}
-
-func (s *Server) handleGetLyrics(c *gin.Context) {
-	id := c.Param("id")
-	c.JSON(200, gin.H{"id": id, "lyrics": ""})
-}
