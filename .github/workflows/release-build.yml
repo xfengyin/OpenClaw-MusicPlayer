@@ -252,9 +252,12 @@ jobs:
       - name: Prepare Release Files
         run: |
           mkdir -p release
-          cp artifacts/windows/**/*.exe release/ 2>/dev/null || true
-          cp artifacts/android/**/*.apk release/ 2>/dev/null || true
-          cp artifacts/linux/**/*.AppImage release/ 2>/dev/null || true
+          # Find and copy files (handle spaces in filenames)
+          find artifacts/windows -name "*.exe" -type f -exec cp {} release/ \; 2>/dev/null || true
+          find artifacts/android -name "*.apk" -type f -exec cp {} release/ \; 2>/dev/null || true
+          find artifacts/android -name "*.aab" -type f -exec cp {} release/ \; 2>/dev/null || true
+          find artifacts/linux -name "*.AppImage" -type f -exec cp {} release/ \; 2>/dev/null || true
+          echo "=== Files in release directory ==="
           ls -la release/
           
       - name: Rename Files with Version
