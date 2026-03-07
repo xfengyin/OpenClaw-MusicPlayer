@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron')
+const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
 const { spawn } = require('child_process')
 
@@ -10,22 +10,41 @@ function createWindow () {
     width: 1200,
     height: 800,
     webPreferences: {
-     /nodeIntegration: false,
+      nodeIntegration: false,
       contextIsolation: true,
-      enableRemoteModule: true
+      preload: path.join(__dirname, 'preload.js')
     },
     title: 'OpenClaw Music Player',
-    icon: path.join(__dirname, '../public/logo.png')
+    icon: path.join(__dirname, '../build/icon.png')
   })
 
-  mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+  // 加载前端页面
+  const isDev = !app.isPackaged
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.webContents.openDevTools()
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+  }
   
-  // 初始化 Go 服务
+  // 启动 Go 后端服务
   startServer()
 }
 
 function startServer() {
-  const serverPath = path.join(__dirname, '../../../server/server')
+  const isDev = !app.isPackaged
+  let serverPath
+  
+  if (isDev) {
+    serverPath = path.join(__dirname, '../../../server/server')
+  } else {
+    // 生产环境根据平台选择正确的二进制文件
+    const platform = process.platform
+    const exeName = platform === 'win32' ? 'server.exe' : 'server'
+    serverPath = path.join(process.resourcesPath, 'server', exeName)
+  }
+  
+  console.log('Starting server from:', serverPath)
   
   serverProcess = spawn(serverPath, [], {
     cwd: path.dirname(serverPath),
@@ -54,8 +73,8 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  if (serverProcess) serverProcess.kill()
   if (process.platform !== 'darwin') {
-    if (serverProcess) serverProcess.kill()
     app.quit()
   }
 })

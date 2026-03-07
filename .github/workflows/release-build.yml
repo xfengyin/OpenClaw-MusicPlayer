@@ -1,0 +1,225 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  # Windows EXE 构建
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Build Go Server (Windows)
+        run: |
+          cd server
+          go build -ldflags="-s -w" -o ../dist/server.exe ./cmd/server
+        
+      - name: Build Frontend
+        run: |
+          cd web
+          npm install
+          npm run build
+          
+      - name: Setup Electron
+        run: |
+          cd electron
+          npm install
+          
+      - name: Copy Frontend to Electron
+        run: |
+          Copy-Item -Path "web/dist/*" -Destination "electron/dist" -Recurse -Force
+          Copy-Item -Path "dist/server.exe" -Destination "electron/dist/server.exe" -Force
+          
+      - name: Build Windows Installer
+        run: |
+          cd electron
+          npx electron-builder --win --x64
+          
+      - name: Upload Windows EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenClaw-Music-Player-Windows
+          path: electron/dist/*.exe
+
+  # Android APK 构建
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          
+      - name: Install Cordova
+        run: npm install -g cordova
+          
+      - name: Build Frontend
+        run: |
+          cd web
+          npm install
+          npm run build
+          
+      - name: Create Cordova Project
+        run: |
+          mkdir -p mobile
+          cd mobile
+          cordova create openclaw-music com.openclaw.musicplayer "OpenClaw Music"
+          cd openclaw-music
+          cordova platform add android
+          
+      - name: Copy Frontend to Cordova
+        run: |
+          rm -rf mobile/openclaw-music/www/*
+          cp -r web/dist/* mobile/openclaw-music/www/
+          
+      - name: Build Android APK
+        run: |
+          cd mobile/openclaw-music
+          cordova build android --release
+          
+      - name: Sign APK
+        run: |
+          cd mobile/openclaw-music/platforms/android/app/build/outputs/apk/release
+          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore debug.keystore -storepass android app-release-unsigned.apk androiddebugkey
+          zipalign -v 4 app-release-unsigned.apk OpenClaw-Music-Player.apk
+          
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenClaw-Music-Player-Android
+          path: mobile/openclaw-music/platforms/android/app/build/outputs/apk/release/OpenClaw-Music-Player.apk
+
+  # Linux AppImage 构建
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Build Go Server (Linux)
+        run: |
+          cd server
+          go build -ldflags="-s -w" -o ../dist/server ./cmd/server
+        
+      - name: Build Frontend
+        run: |
+          cd web
+          npm install
+          npm run build
+          
+      - name: Setup Electron
+        run: |
+          cd electron
+          npm install
+          
+      - name: Copy Frontend to Electron
+        run: |
+          mkdir -p electron/dist
+          cp -r web/dist/* electron/dist/
+          cp dist/server electron/dist/server
+          
+      - name: Build Linux AppImage
+        run: |
+          cd electron
+          npx electron-builder --linux AppImage
+          
+      - name: Upload Linux AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenClaw-Music-Player-Linux
+          path: electron/dist/*.AppImage
+
+  # 创建发布版本
+  create-release:
+    needs: [build-windows, build-android, build-linux]
+    runs-on: ubuntu-latest
+    if: always() && (needs.build-windows.result == 'success' || needs.build-android.result == 'success' || needs.build-linux.result == 'success')
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: OpenClaw-Music-Player-Windows
+          path: artifacts/windows
+        continue-on-error: true
+          
+      - name: Download Android Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: OpenClaw-Music-Player-Android
+          path: artifacts/android
+        continue-on-error: true
+          
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: OpenClaw-Music-Player-Linux
+          path: artifacts/linux
+        continue-on-error: true
+          
+      - name: List Artifacts
+        run: |
+          ls -la artifacts/ || true
+          find artifacts -type f -name "*" || true
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          name: Release ${{ github.event.inputs.version || github.ref_name }}
+          files: |
+            artifacts/windows/**/*.exe
+            artifacts/android/**/*.apk
+            artifacts/linux/**/*.AppImage
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
