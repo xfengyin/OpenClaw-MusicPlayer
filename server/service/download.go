@@ -25,14 +25,14 @@ type DownloadTask struct {
 }
 
 type DownloadService struct {
-	tasks     map[string]*DownloadTask
-	tasksLock sync.RWMutex
-	max concurrent int
+	tasks         map[string]*DownloadTask
+	tasksLock     sync.RWMutex
+	maxConcurrent int
 }
 
 func NewDownloadService() *DownloadService {
 	return &DownloadService{
-		tasks:     make(map[string]*DownloadTask),
+		tasks:         make(map[string]*DownloadTask),
 		maxConcurrent: 5,
 	}
 }

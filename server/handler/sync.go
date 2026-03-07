@@ -7,12 +7,13 @@ import (
 	"github.com/xfengyin/OpenClaw-MusicPlayer/server/service"
 )
 
-var parserService = service.NewParserService()
+var syncService = service.NewSyncService()
 
-// ParsePlaylist 解析歌单
-func ParsePlaylist(w http.ResponseWriter, r *http.Request) {
+// SyncLibrary 同步音乐库
+func SyncLibrary(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		URL string `json:"url"`
+		UserID     string `json:"user_id"`
+		PlaylistID string `json:"playlist_id"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -20,8 +21,7 @@ func ParsePlaylist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := parserService.ParsePlaylist(req.URL)
-	if err != nil {
+	if err := syncService.SyncData(req.UserID, req.PlaylistID); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"code": 500,
@@ -35,22 +35,22 @@ func ParsePlaylist(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"code": 200,
 		"msg":  "success",
-		"data": result,
 	})
 }
 
-// ParseSong 解析单曲
-func ParseSong(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		URL string `json:"url"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+// GetSyncStatus 获取同步状态
+func GetSyncStatus(w http.ResponseWriter, r *http.Request) {
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"code": 400,
+			"msg":  "missing user_id parameter",
+		})
 		return
 	}
 
-	result, err := parserService.ParseSong(req.URL)
+	playlists, err := syncService.GetUserPlaylists(userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -65,6 +65,8 @@ func ParseSong(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"code": 200,
 		"msg":  "success",
-		"data": result,
+		"data": map[string]interface{}{
+			"playlists": playlists,
+		},
 	})
 }

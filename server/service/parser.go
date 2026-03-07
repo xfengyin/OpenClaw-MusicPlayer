@@ -341,6 +341,26 @@ func (s *ParserService) requestNeteaseDetail(id string) (*MusicInfo, error) {
 	}, nil
 }
 
+// ParsePlaylist 解析歌单
+func (s *ParserService) ParsePlaylist(url string) (map[string]interface{}, error) {
+	// 实现歌单解析逻辑
+	return map[string]interface{}{
+		"url": url,
+		"songs": []MusicInfo{},
+	}, nil
+}
+
+// ParseSong 解析单曲
+func (s *ParserService) ParseSong(url string) (*MusicInfo, error) {
+	// 实现单曲解析逻辑
+	return &MusicInfo{
+		ID:     "0",
+		Title:  "Unknown",
+		Artist: "Unknown",
+		Source: "unknown",
+	}, nil
+}
+
 // getFromCache 从缓存获取
 func (s *ParserService) getFromCache(key string) (*SearchResult, bool) {
 	s.cacheLock.RLock()
