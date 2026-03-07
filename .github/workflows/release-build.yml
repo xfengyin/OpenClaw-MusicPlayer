@@ -257,7 +257,25 @@ jobs:
           cp artifacts/linux/**/*.AppImage release/ 2>/dev/null || true
           ls -la release/
           
-      - name: Create Release
+      - name: Rename Files with Version
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          cd release
+          for file in *; do
+            if [ -f "$file" ]; then
+              # Extract extension
+              if [[ "$file" == *.exe ]]; then
+                mv "$file" "OpenClaw-Music-Player-${VERSION}-Windows.exe"
+              elif [[ "$file" == *.apk ]]; then
+                mv "$file" "OpenClaw-Music-Player-${VERSION}-Android.apk"
+              elif [[ "$file" == *.AppImage ]]; then
+                mv "$file" "OpenClaw-Music-Player-${VERSION}-Linux.AppImage"
+              fi
+            fi
+          done
+          ls -la
+          
+      - name: Create or Update Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.version || github.ref_name }}
@@ -266,13 +284,13 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: false
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
         
-      - name: Upload Artifacts as Backup
-        if: failure()
+      - name: Upload Release Files as Artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: release-files
+          name: release-files-${{ github.event.inputs.version || github.ref_name }}
           path: release/*
