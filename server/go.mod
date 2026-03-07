@@ -1,4 +1,4 @@
-module openclaw-music-player
+module github.com/xfengyin/OpenClaw-MusicPlayer/server
 
 go 1.19
 

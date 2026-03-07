@@ -7,13 +7,12 @@ import (
 )
 
 // Recovery 恢复中间件
-func Recovery() func(http.Handler) {
-    return func(next http.Handler) {
-        http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func Recovery() func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             defer func() {
                 if err := recover(); err != nil {
-                    log.Printf(" panicked: %v
-%s", err, debug.Stack())
+                    log.Printf("panicked: %v\n%s", err, debug.Stack())
                     http.Error(w, "Internal Server Error", http.StatusInternalServerError)
                 }
             }()

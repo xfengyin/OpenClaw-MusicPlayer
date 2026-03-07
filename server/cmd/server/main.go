@@ -43,10 +43,6 @@ func main() {
 		// 歌词相关
 		api.GET("/lyrics", gin.WrapF(handler.GetLyrics))
 
-		// 同步相关
-		api.POST("/sync", gin.WrapF(handler.SyncLibrary))
-		api.GET("/sync/status", gin.WrapF(handler.GetSyncStatus))
-
 		// 远程控制
 		api.POST("/remote/control", gin.WrapF(handler.RemoteControl))
 		api.GET("/remote/status", gin.WrapF(handler.GetRemoteStatus))
