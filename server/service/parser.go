@@ -1,6 +1,7 @@
 package service
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,8 +9,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"golang.org/x/crypto/sha3"
 )
 
 type MusicInfo struct {
@@ -184,7 +183,7 @@ func (s *ParserService) decryptMusicUrl(id string, source string) (string, error
 
 // calculateHash 计算音乐 hash
 func (s *ParserService) calculateHash(data string) string {
-	h := sha3.New256()
+	h := sha256.New()
 	h.Write([]byte(data))
 	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }

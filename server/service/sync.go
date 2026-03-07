@@ -1,6 +1,8 @@
 package service
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,8 +11,6 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	"golang.org/x/crypto/aes"
-	"golang.org/x/crypto/cipher"
 )
 
 type UserData struct {
