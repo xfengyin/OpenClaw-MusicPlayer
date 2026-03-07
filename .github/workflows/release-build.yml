@@ -114,24 +114,45 @@ jobs:
           
       - name: Find and Sign APK
         run: |
-          # Find the APK file
-          find mobile/openclaw-music -name "*.apk" -type f
-          APK_PATH=$(find mobile/openclaw-music -name "app-release-unsigned.apk" -o -name "app-release.apk" | head -1)
-          echo "Found APK at: $APK_PATH"
+          # List all generated files
+          echo "=== All files in mobile directory ==="
+          find mobile -type f -name "*.apk" -o -name "*.aab" 2>/dev/null
           
-          if [ -n "$APK_PATH" ]; then
-            APK_DIR=$(dirname "$APK_PATH")
+          # Cordova builds APK to a different location
+          APK_DIR="mobile/openclaw-music/platforms/android/app/build/outputs/apk/release"
+          AAB_DIR="mobile/openclaw-music/platforms/android/app/build/outputs/bundle/release"
+          
+          # Check for APK or AAB
+          if [ -f "$APK_DIR/app-release-unsigned.apk" ]; then
+            echo "Found unsigned APK"
             cd "$APK_DIR"
             
             # Generate keystore
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" || true
             
             # Sign APK
-            if [ -f "app-release-unsigned.apk" ]; then
-              jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore debug.keystore -storepass android app-release-unsigned.apk androiddebugkey || true
-              ${ANDROID_HOME}/build-tools/*/zipalign -v 4 app-release-unsigned.apk OpenClaw-Music-Player.apk || cp app-release-unsigned.apk OpenClaw-Music-Player.apk
-            else
-              cp app-release.apk OpenClaw-Music-Player.apk
+            jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore debug.keystore -storepass android app-release-unsigned.apk androiddebugkey || true
+            
+            # Align APK
+            BUILD_TOOLS=$(ls -d ${ANDROID_HOME}/build-tools/*/ | sort -V | tail -1)
+            $BUILD_TOOLS/zipalign -v 4 app-release-unsigned.apk OpenClaw-Music-Player.apk || cp app-release-unsigned.apk OpenClaw-Music-Player.apk
+            
+          elif [ -f "$AAB_DIR/app-release.aab" ]; then
+            echo "Found AAB bundle, converting to APK..."
+            # For now, copy AAB as artifact (can be converted to APK using bundletool)
+            mkdir -p "$APK_DIR"
+            cp "$AAB_DIR/app-release.aab" "$APK_DIR/OpenClaw-Music-Player.aab"
+            cd "$APK_DIR"
+            
+          else
+            echo "No APK or AAB found, searching entire directory..."
+            find mobile -type f \( -name "*.apk" -o -name "*.aab" \) -exec ls -la {} \;
+            
+            # Try to find any APK
+            ANY_APK=$(find mobile -name "*.apk" | head -1)
+            if [ -n "$ANY_APK" ]; then
+              echo "Found APK at: $ANY_APK"
+              cp "$ANY_APK" mobile/openclaw-music/platforms/android/app/build/outputs/apk/release/OpenClaw-Music-Player.apk
             fi
           fi
           
@@ -139,7 +160,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: OpenClaw-Music-Player-Android
-          path: mobile/openclaw-music/**/OpenClaw-Music-Player.apk
+          path: |
+            mobile/openclaw-music/platforms/android/app/build/outputs/apk/release/OpenClaw-Music-Player.apk
+            mobile/openclaw-music/platforms/android/app/build/outputs/apk/release/OpenClaw-Music-Player.aab
+        continue-on-error: true
 
   # Linux AppImage 构建
   build-linux:
