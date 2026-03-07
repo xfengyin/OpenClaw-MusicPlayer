@@ -3,7 +3,6 @@ package utils
 import (
     "log"
     "os"
-    "time"
 )
 
 type Logger struct {
