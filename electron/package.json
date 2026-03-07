@@ -20,7 +20,8 @@
     "files": [
       "main/**/*",
       "renderer/**/*",
-      "build/**/*"
+      "build/**/*",
+      "dist/**/*"
     ],
     "extraResources": [
       {

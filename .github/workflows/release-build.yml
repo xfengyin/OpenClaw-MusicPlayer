@@ -46,12 +46,15 @@ jobs:
           
       - name: Copy Frontend to Electron
         run: |
-          if (!(Test-Path "electron/renderer")) { New-Item -ItemType Directory -Path "electron/renderer" }
+          if (!(Test-Path "electron/renderer")) { New-Item -ItemType Directory -Path "electron/renderer" -Force }
           Copy-Item -Path "web/dist/*" -Destination "electron/renderer/" -Recurse -Force
+          # Also copy to dist for extraResources
+          if (!(Test-Path "electron/dist")) { New-Item -ItemType Directory -Path "electron/dist" -Force }
+          Copy-Item -Path "web/dist/*" -Destination "electron/dist/" -Recurse -Force
           
       - name: Copy Server to Electron
         run: |
-          if (!(Test-Path "electron/dist")) { New-Item -ItemType Directory -Path "electron/dist" }
+          if (!(Test-Path "electron/dist")) { New-Item -ItemType Directory -Path "electron/dist" -Force }
           Copy-Item -Path "dist/server.exe" -Destination "electron/dist/server.exe" -Force
           
       - name: Build Windows Installer
@@ -206,6 +209,9 @@ jobs:
         run: |
           mkdir -p electron/renderer
           cp -r web/dist/* electron/renderer/
+          # Also copy to dist for extraResources
+          mkdir -p electron/dist
+          cp -r web/dist/* electron/dist/
           
       - name: Copy Server to Electron
         run: |
