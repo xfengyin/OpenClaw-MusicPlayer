@@ -1,0 +1,52 @@
+name: Android Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        
+      - name: Build Go Server for Android
+        run: |
+          cd server
+          # Cross-compile Go for Android ARM64
+          GOOS=android GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-android-gcc \
+          go build -o ../dist/server-android ./cmd/server
+        
+      - name: Build Frontend for Mobile
+        run: |
+          cd web
+          npm install
+          npm run build
+          
+      - name: Create Android App Structure
+        run: |
+          mkdir -p dist/android/app/src/main/assets
+          cp -r web/dist/* dist/android/app/src/main/assets/
+          cp server/server-android dist/android/app/src/main/assets/
+          echo "Android app structure created"
+          
+      - name: Upload Android Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openclaw-music-player-android
+          path: dist/android/
