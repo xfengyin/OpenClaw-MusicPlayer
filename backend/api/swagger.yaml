@@ -1,0 +1,218 @@
+openapi: 3.0.0
+info:
+  title: OpenClaw Music Player API
+  description: API documentation for OpenClaw Music Player backend
+  version: 1.0.0
+  contact:
+    name: OpenClaw Team
+    url: https://github.com/xfengyin/OpenClaw-MusicPlayer
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check if the server is running
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  time:
+                    type: integer
+                    example: 1709836800
+
+  /music/search:
+    get:
+      summary: Search music
+      description: Search for songs, albums, or artists
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search keyword
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [song, album, artist]
+          description: Search type
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Number of results to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Offset for pagination
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keyword:
+                    type: string
+                  total:
+                    type: integer
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Song'
+
+  /music/detail/{id}:
+    get:
+      summary: Get song detail
+      description: Get detailed information about a song
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Song ID
+      responses:
+        '200':
+          description: Song details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Song'
+
+  /music/url/{id}:
+    get:
+      summary: Get music URL
+      description: Get the playback URL for a song
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Song ID
+        - name: quality
+          in: query
+          schema:
+            type: string
+            enum: [standard, high, lossless]
+            default: standard
+          description: Audio quality
+      responses:
+        '200':
+          description: Music URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  url:
+                    type: string
+                  quality:
+                    type: string
+                  size:
+                    type: integer
+
+  /playlist/parse:
+    get:
+      summary: Parse playlist
+      description: Parse a playlist from a URL
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Playlist URL
+      responses:
+        '200':
+          description: Parsed playlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                  title:
+                    type: string
+                  songs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Song'
+
+  /lyrics/{id}:
+    get:
+      summary: Get lyrics
+      description: Get lyrics for a song
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Song ID
+      responses:
+        '200':
+          description: Lyrics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  lyrics:
+                    type: string
+                  translated:
+                    type: string
+                  source:
+                    type: string
+
+components:
+  schemas:
+    Song:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Song ID
+        title:
+          type: string
+          description: Song title
+        artist:
+          type: string
+          description: Artist name
+        album:
+          type: string
+          description: Album name
+        cover:
+          type: string
+          description: Cover image URL
+        duration:
+          type: integer
+          description: Duration in seconds
+        url:
+          type: string
+          description: Audio URL
+        source:
+          type: string
+          description: Music source (netease, qq, etc.)

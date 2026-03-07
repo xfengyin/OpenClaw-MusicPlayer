@@ -1,0 +1,42 @@
+# OpenClaw Music Player - Backend Configuration
+
+# Server Configuration
+server:
+  port: 8080
+  host: "0.0.0.0"
+  mode: "release"  # debug, release, test
+
+# Music Parser Configuration
+parser:
+  # NetEase Cloud Music API
+  netease:
+    base_url: "https://music.163.com"
+    timeout: 30
+  
+  # Cache Settings
+  cache:
+    enabled: true
+    ttl: 3600  # seconds
+    max_size: 100  # MB
+
+# Database Configuration
+database:
+  type: "sqlite"  # sqlite, mysql
+  path: "./data/openclaw.db"
+  
+# Logging Configuration
+log:
+  level: "info"  # debug, info, warn, error
+  format: "json"  # json, text
+  output: "stdout"  # stdout, file
+
+# Security Configuration
+security:
+  cors:
+    enabled: true
+    origins: ["*"]
+  
+  rate_limit:
+    enabled: true
+    requests: 100
+    window: 60  # seconds
