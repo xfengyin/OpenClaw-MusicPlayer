@@ -1,22 +1,21 @@
 package middleware
 
 import (
-    "net/http"
-    "runtime/debug"
-    "log"
+	"log"
+	"runtime/debug"
+
+	"github.com/gin-gonic/gin"
 )
 
 // Recovery 恢复中间件
-func Recovery() func(http.Handler) http.Handler {
-    return func(next http.Handler) http.Handler {
-        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-            defer func() {
-                if err := recover(); err != nil {
-                    log.Printf("panicked: %v\n%s", err, debug.Stack())
-                    http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-                }
-            }()
-            next.ServeHTTP(w, r)
-        })
-    }
+func Recovery() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("panicked: %v\n%s", err, debug.Stack())
+				c.AbortWithStatus(500)
+			}
+		}()
+		c.Next()
+	}
 }
