@@ -33,14 +33,14 @@ type SearchResult struct {
 }
 
 type ParserService struct {
-	cache      map[string]*MusicInfo
+	cache      map[string]interface{}
 	cacheLock  sync.RWMutex
 	httpClient *http.Client
 }
 
 func NewParserService() *ParserService {
 	return &ParserService{
-		cache:      make(map[string]*MusicInfo),
+		cache:      make(map[string]interface{}),
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}
 }
@@ -143,7 +143,7 @@ func (s *ParserService) decryptMusicUrl(id string, source string) (string, error
 
 	// 这里实际实现解密逻辑
 	// 参考: https://github.com/anonymous5l/ncm
-	jsonData, err := json.Marshal(params)
+	_, err := json.Marshal(params)
 	if err != nil {
 		return "", err
 	}
@@ -370,14 +370,15 @@ func (s *ParserService) getFromCache(key string) (*SearchResult, bool) {
 		return nil, false
 	}
 
-	result := &SearchResult{
-		Items: val.Items,
+	result, ok := val.(*SearchResult)
+	if !ok {
+		return nil, false
 	}
 	return result, true
 }
 
 // addToCache 添加到缓存
-func (s *ParserService) addToCache(key string, value *SearchResult) {
+func (s *ParserService) addToCache(key string, value interface{}) {
 	s.cacheLock.Lock()
 	defer s.cacheLock.Unlock()
 

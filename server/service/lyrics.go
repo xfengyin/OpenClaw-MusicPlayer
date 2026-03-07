@@ -46,7 +46,7 @@ func (s *LyricsService) ParseLyrics(krcData, lrcData string) (*Lyrics, error) {
 		matches := s.lrcRegex.FindStringSubmatch(line)
 		if len(matches) == 4 {
 			mins, _ := strconv.Atoi(matches[1])
-			secs, _ := strconv.ParseFloat(matches[2])
+			secs, _ := strconv.ParseFloat(matches[2], 64)
 			text := strings.TrimSpace(matches[3])
 			
 			seconds := float64(mins*60) + secs
@@ -77,7 +77,6 @@ func (s *LyricsService) ConvertToSimplified(text string) string {
 		"個": "个",
 		"黨": "党",
 		"學": "学",
-		"體": "体",
 	}
 
 	result := text

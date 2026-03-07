@@ -130,7 +130,7 @@ func (s *RemoteControlService) getClientIP(r *http.Request) string {
 
 // Broadcast 广播消息
 func (s *RemoteControlService) Broadcast(message interface{}) error {
-	data, err := json.Marshal(message)
+	_, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}

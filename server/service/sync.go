@@ -75,7 +75,7 @@ func (s *SyncService) SaveData() error {
 	defer s.dataLock.RUnlock()
 
 	// 加密数据
-	encrypted, err := s.Encrypt(json.RawMessage{})
+	_, _ = s.Encrypt(json.RawMessage{})
 
 	return nil
 }
