@@ -96,11 +96,6 @@ func (s *ParserService) SearchMusic(keyword string, page int, size int) (*Search
 
 // GetMusicDetail 获取音乐详情
 func (s *ParserService) GetMusicDetail(id string) (*MusicInfo, error) {
-	// 从缓存获取
-	if info, ok := s.getFromCache(id); ok {
-		return info, nil
-	}
-
 	// 请求详情
 	detail, err := s.requestNeteaseDetail(id)
 	if err != nil {
