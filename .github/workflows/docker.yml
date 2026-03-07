@@ -16,11 +16,11 @@ jobs:
     
     - name: Build Docker image
       run: |
-        docker build -t openclaw-music-server:${{ github.sha }} .
+        docker build -t openclaw-music-server:${{ github.sha }} ./server
         
     - name: Test Docker image
       run: |
-        docker run --rm openclaw-music-server:${{ github.sha }} server --version
+        docker run --rm openclaw-music-server:${{ github.sha }} --version
 
   docker-push:
     runs-on: ubuntu-latest
@@ -38,7 +38,7 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v5
       with:
-        context: .
+        context: ./server
         push: true
         tags: |
           openclaw/music-server:${{ github.ref_name }}

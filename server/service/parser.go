@@ -256,14 +256,14 @@ func (s *ParserService) requestNetease(params map[string]string) ([]MusicInfo, e
 		}
 
 		items = append(items, MusicInfo{
-			ID:      fmt.Sprintf("%d", song.ID),
-			Title:   song.Name,
-			Artist:  artist,
-			Album:   song.Al.Name,
-			Cover:   song.Al.Pic,
+			ID:       song.ID,
+			Title:    song.Name,
+			Artist:   artist,
+			Album:    song.Al.Name,
+			Cover:    song.Al.Pic,
 			Duration: song.Dt / 1000,
-			Sources: []string{"netease"},
-			Source:  "netease",
+			Sources:  []string{"netease"},
+			Source:   "netease",
 		})
 	}
 
